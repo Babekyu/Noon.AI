@@ -6,7 +6,8 @@ app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
 def hello_world():
-    return 'Hello World!'
+    # operations.initialize()
+    return operations.initialize()
 
 # @app.route('/generate', methods=['POST'])
 # def generate():

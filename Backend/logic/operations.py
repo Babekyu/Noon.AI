@@ -26,7 +26,7 @@ def getFuture(symbol):
     future_boolean = future['ds'].map(lambda x: True if x.weekday() in range(0, 5) else False)
     future = future[future_boolean]
     forecast = model.predict(future)
-    forecast = forecast[['yhat']]
+    forecast = forecast[['yhat', 'yhat_lower', 'yhat_upper']]
     forecast['ds'] = future['ds'].to_list()
     forecast = forecast[len(df):]
     forecast.index = [x for x in range(len(forecast))]
@@ -50,7 +50,6 @@ def getHistorical(symbol):
     df['date'] = df.index
     df.index = [x for x in range(len(df))]
     df.columns = ['y', 'ds']
-
     df['ds'] = df['ds'].dt.strftime('%Y-%m-%d')
     historical_data = df.to_json()
     historical_data = json.loads(historical_data)

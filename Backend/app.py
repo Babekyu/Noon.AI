@@ -35,10 +35,10 @@ class application:
         # accepts string ticker
         print(msg.topic)
         if (msg.topic == 'getFuture'):
-            self.pool.apply_async(operations.getFuture,msg.payload.decode(),callback=partial(self.publishCallback,'sendFuture'))
+            self.pool.apply_async(operations.getFuture,(msg.payload.decode(),),callback=partial(self.publishCallback,'sendFuture'))
         # accepts string ticker
         if (msg.topic == 'getHistory'):
-            self.pool.apply_async(operations.getFuture,msg.payload.decode(),callback=partial(self.publishCallback,'sendHistory'))
+            self.pool.apply_async(operations.getHistorical,(msg.payload.decode(),),callback=partial(self.publishCallback,'sendHistory'))
         # accepts object with 'start', 'end' and 'ticker'
         if (msg.topic == 'getSentiment'):
             params = (json.loads(msg.payload.decode()))
@@ -47,9 +47,10 @@ class application:
 
     def publishCallback(self, topic, result):
         client.publish(topic, payload=json.dumps(result))
+        print(topic + ' has resolved')
 
     def __init__(self):
-        self.pool = mp.Pool(4)
+        self.pool = mp.Pool(6,maxtasksperchild=3)
 
 if __name__ == '__main__':
     # If using websockets (protocol is ws or wss), must set the transport for the client as below

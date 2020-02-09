@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
@@ -8,7 +8,9 @@ import {
   DatePicker,
   Typography,
   BackTop,
-  Collapse
+  Collapse,
+  Spin,
+  Descriptions,
 } from 'antd';
 
 import {
@@ -30,11 +32,13 @@ import DataSet from '@antv/data-set';
 import moment from 'moment';
 
 import './details-screen.css';
+import { ISymbolSuggestion, fetchSuggestionData } from '../../services/search-symbol';
 
 const { RangePicker } = DatePicker;
 const { Text, Paragraph, Title } = Typography;
 const { Meta } = Card;
 const { Panel } = Collapse;
+const { Line } = Guide;
 
 interface IParam {
   symbol: string;
@@ -50,49 +54,61 @@ interface ISentiment {
 const data = [
   {
     year: '1991',
-    value: 3
+    value: 3,
   },
   {
     year: '1992',
-    value: 4
+    value: 4,
   },
   {
     year: '1993',
-    value: 3.5
+    value: 3.5,
   },
   {
     year: '1994',
-    value: 5
+    value: 5,
   },
   {
     year: '1995',
-    value: 4.9
+    value: 4.9,
   },
   {
     year: '1996',
-    value: 6
+    value: 6,
   },
   {
     year: '1997',
-    value: 7
+    value: 7,
   },
   {
     year: '1998',
-    value: 9
+    value: 9,
   },
   {
     year: '1999',
-    value: 13
-  }
+    value: 13,
+  },
+  {
+    year: '2000',
+  },
+  {
+    year: '2001',
+  },
+  {
+    year: '2002',
+  },
+  {
+    year: '2003',
+  },
 ];
 
 const cols = {
   value: {
-    min: 0
+    min: 0,
   },
   year: {
-    range: [0, 1]
-  }
+    range: [0, 1],
+  },
 };
 
 const overallSentiment = [
@@ -107,32 +123,32 @@ const overallSentiment = [
 const tabList = [
   {
     key: '1day',
-    tab: '1 Day'
+    tab: '1 Day',
   },
   {
     key: '5days',
-    tab: '5 Days'
+    tab: '5 Days',
   },
   {
     key: '1month',
-    tab: '1 Month'
+    tab: '1 Month',
   },
   {
     key: '6months',
-    tab: '6 Months'
+    tab: '6 Months',
   },
   {
     key: '1year',
-    tab: '1 Year'
+    tab: '1 Year',
   },
   {
     key: '5years',
-    tab: '5 Years'
+    tab: '5 Years',
   },
   {
     key: 'max',
-    tab: 'Max'
-  }
+    tab: 'Max',
+  },
 ];
 
 const dateFormat = 'YYYY-MM-DD';
@@ -150,18 +166,27 @@ const buildSentimentDV = (sentimentData: ISentiment[]) => {
   return dv;
 };
 
-const SymbolScreen = () => {
-  const s = useParams<IParam>().symbol;
-  const [meta, setMeta] = useState<any>();
-  const [symbol, setSymbol] = useState<string>(s);
+const pageLoader = (symbol: string, meta: ISymbolSuggestion | undefined) => {
+  if (!meta) {
+    return <Spin size="large" />;
+  }
   return (
-    <div className="symbol-details">
-      <BackTop />
+    <div>
       <div className="container">
         <div className="column">
           <div className="title-container mb-3">
             <h1>{symbol}</h1>
-            <h4>Apple Inc.</h4>
+            <h4>
+              {meta.name}
+            </h4>
+            <Descriptions>
+              <Descriptions.Item label="Currency">{meta.currency}</Descriptions.Item>
+              <Descriptions.Item label="Region">{meta.region}</Descriptions.Item>
+              <Descriptions.Item label="Market Open">{meta.marketOpen}</Descriptions.Item>
+              <Descriptions.Item label="Market Close">{meta.marketClose}</Descriptions.Item>
+              <Descriptions.Item label="Time Zone">{meta.timezone}</Descriptions.Item>
+              <Descriptions.Item label="Product Type">{meta.type}</Descriptions.Item>
+            </Descriptions>
           </div>
         </div>
       </div>
@@ -175,7 +200,7 @@ const SymbolScreen = () => {
               tabList={tabList}
             >
               <Chart
-                padding={20}
+                padding={[40, 20, 40, 20]}
                 height={400}
                 data={data}
                 scale={cols}
@@ -184,21 +209,30 @@ const SymbolScreen = () => {
                 <Axis name="year" />
                 <Axis name="value" />
                 <Tooltip
-                  crosshairs={{
-                    type: 'y',
-                  }}
+                  crosshairs={false}
+                  useHtml
+                  enterable
+                  triggerOn="click"
                 />
-                <Geom type="line" position="year*value" size={2} />
-                <Geom
-                  type="point"
-                  position="year*value"
-                  size={4}
-                  shape="circle"
-                  style={{
-                    stroke: '#fff',
-                    lineWidth: 1,
-                  }}
-                />
+                <Geom type="area" position="year*value" size={2} shape="smooth" />
+                <Guide>
+                  <Line
+                    top
+                    start={{
+                      year: '1999',
+                      value: 13,
+                    }}
+                    end={{
+                      year: '2003',
+                      value: 15,
+                    }}
+                    lineStyle={{
+                      stroke: '#E91E63',
+                      lineDash: [0, 2, 2],
+                      lineWidth: 1,
+                    }}
+                  />
+                </Guide>
               </Chart>
             </Card>
           </Col>
@@ -261,6 +295,29 @@ const SymbolScreen = () => {
           </Col>
         </Row>
       </div>
+    </div>
+  );
+};
+
+const SymbolScreen = () => {
+  const s = useParams<IParam>().symbol;
+  const [symbol, setSymbol] = useState<string>(s);
+  const [meta, setMeta] = useState<ISymbolSuggestion>();
+
+  useEffect(() => {
+    async function doAsync() {
+      const res = await fetchSuggestionData(symbol);
+      const symbolRes = res.find((r) => r.symbol === symbol);
+      if (symbolRes) {
+        setMeta(symbolRes);
+      }
+    }
+    doAsync();
+  }, [symbol]);
+  return (
+    <div className="symbol-details">
+      <BackTop />
+      {pageLoader(symbol, meta)}
     </div>
   );
 };

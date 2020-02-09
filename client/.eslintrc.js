@@ -29,6 +29,7 @@ module.exports = {
         "linebreak-style": "off",
         "import/no-extraneous-dependencies": "off",
         "no-unused-vars": "off",
-        "class-methods-use-this": "off"
+        "class-methods-use-this": "off",
+        "import/prefer-default-export": "off"
     }
 };

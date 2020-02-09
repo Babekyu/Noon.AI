@@ -36,13 +36,25 @@ export interface Sentiment {
   neutral: number;
   negative: number;
   compound: number;
+  id: string;
   url?: string;
+}
+
+export interface IGraphData {
+  data: Data;
+}
+
+export interface Data {
+  y: { [key: string]: string };
+  ds: { [key: string]: string };
 }
 
 
 const App = () => {
   const [connected, setConnected] = useState<boolean>(false);
   const [sentimentData, setSentimentData] = useState<ISentimentData>();
+  const [history, setHistory] = useState<IGraphData>();
+  const [future, setFuture] = useState<IGraphData>();
   const handleSentiment = (message: any) => {
     if (message.topic === 'sendSentiment') {
       console.log(JSON.parse(message.payloadString));
@@ -52,13 +64,15 @@ const App = () => {
 
   const handleHistory = (message: any) => {
     if (message.topic === 'sendHistory') {
-      console.log(JSON.parse(message.payloadString));
+      const data: IGraphData = JSON.parse(message.payloadString);
+      console.log(data);
+      setHistory(data);
     }
   };
 
   const handleFuture = (message: any) => {
     if (message.topic === 'sendFuture') {
-      console.log(JSON.parse(message.payloadString));
+      setFuture(JSON.parse(message.payloadString));
     }
   };
 
@@ -79,6 +93,10 @@ const App = () => {
     }
   };
 
+  const handleDateUpdated = () => {
+    setSentimentData(undefined);
+  };
+
   handleConnection();
   return (
     <div className="App">
@@ -94,7 +112,13 @@ const App = () => {
                 <SearchScreen />
               </Route>
               <Route path="/symbol/:symbol">
-                <SymbolScreen connected={connected} sentiment={sentimentData} />
+                <SymbolScreen
+                  connected={connected}
+                  sentiment={sentimentData}
+                  history={history}
+                  future={future}
+                  onDateUpdated={handleDateUpdated}
+                />
               </Route>
             </Switch>
           </CSSTransition>

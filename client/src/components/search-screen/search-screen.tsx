@@ -14,6 +14,7 @@ import { useHistory } from 'react-router-dom';
 import { fetchSuggestionData } from '../../services/search-symbol';
 
 import './search-screen.css';
+import logo from './machine-learning.png';
 
 
 const { Text } = Typography;
@@ -53,7 +54,8 @@ const ChatScreen: React.FC = () => {
     <div className="search-screen">
       <div className="search-screen-elements">
         <div className="title-container">
-          <h1>Noon.ai</h1>
+          <img src={logo} alt="Logo" width="200" />
+          <Typography.Title>Stonk Terminal</Typography.Title>
           <Text type="secondary">Artificial Inteligence Powered Financial Advisor</Text>
         </div>
         <div className="search-bar-container">

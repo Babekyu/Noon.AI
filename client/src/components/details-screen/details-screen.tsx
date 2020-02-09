@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useHistory } from 'react-router-dom';
 import Paho from 'paho-mqtt';
 
 import {
@@ -13,6 +13,7 @@ import {
   Spin,
   Descriptions,
   Tag,
+  notification,
 } from 'antd';
 
 import {
@@ -33,7 +34,7 @@ import messaging from '../../helpers/messaging';
 import { ISymbolSuggestion, fetchSuggestionData } from '../../services/search-symbol';
 
 import './details-screen.css';
-import { ISentimentData } from '../../App';
+import { ISentimentData, IGraphData } from '../../App';
 
 const { RangePicker } = DatePicker;
 const { Text, Paragraph, Title } = Typography;
@@ -48,13 +49,15 @@ interface IParam {
 type Props = {
   connected: boolean;
   sentiment: ISentimentData | undefined;
+  history: IGraphData | undefined,
+  future: IGraphData | undefined,
+  onDateUpdated: () => void,
 }
 
 interface ISentiment {
   title: string;
   negative: number;
   positive: number;
-  neutral: number;
 }
 
 interface IDateRange {
@@ -71,15 +74,6 @@ const cols = {
     range: [0, 1],
   },
 };
-
-const overallSentiment = [
-  {
-    title: 'Sentiment',
-    negative: 25635,
-    positive: 1890,
-    neutral: 9314,
-  },
-];
 
 const tabList = [
   {
@@ -119,7 +113,7 @@ const buildSentimentDV = (sentimentData: ISentiment[]) => {
   const dv = ds.createView().source(sentimentData);
   dv.transform({
     type: 'fold',
-    fields: ['negative', 'neutral', 'positive'],
+    fields: ['negative', 'positive'],
     key: 'Sentiment',
     value: 'Percentage',
     retains: ['title'],
@@ -137,15 +131,14 @@ const mediaBuilder = (
 ) => {
   const positiveSum = sentiments && sentiments.res ? sentiments
     .res
-    .map((s) => s.positive).reduce((a, b) => a + b, 0) : 0;
+    .filter((s) => s.compound > 0)
+    .length : 0;
 
   const negativeSum = sentiments && sentiments.res ? sentiments
     .res
-    .map((s) => s.negative).reduce((a, b) => a + b, 0) : 0;
+    .filter((s) => s.compound < 0)
+    .length : 0;
 
-  const neutralSum = sentiments && sentiments.res ? sentiments
-    .res
-    .map((s) => s.neutral).reduce((a, b) => a + b, 0) : 0;
   return (
     <Card title="Media Sentiment Analysis" className="mb-3">
       <div className="picker-container mb-3">
@@ -165,7 +158,6 @@ const mediaBuilder = (
             Overview
           </Paragraph>
           <Card
-            // loading
             className="mb-1"
           >
             <Paragraph type="secondary" className="mb-1">
@@ -177,7 +169,6 @@ const mediaBuilder = (
                 title: 'Sentiment',
                 positive: positiveSum,
                 negative: negativeSum,
-                neutral: neutralSum,
               }])}
               padding={[10, 10, 50, 10]}
               forceFit
@@ -188,7 +179,7 @@ const mediaBuilder = (
               <Geom
                 type="intervalStack"
                 position="Title*Percentage"
-                color={['Sentiment', ['#f44336', '#9E9E9E', '#4CAF50']]}
+                color={['Sentiment', ['#f44336', '#4CAF50']]}
               />
             </Chart>
           </Card>
@@ -230,11 +221,15 @@ const mediaBuilder = (
             All Articles Found
           </Paragraph>
           {sentiments.res.map((s, i) => (
-            <a href={s.url} target="_blank" rel="noopener noreferrer">
+            <a
+              href={s.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              key={s.id}
+            >
               <Card
                 className="mb-1"
                 hoverable
-                key={i}
               >
                 <Title level={4}>
                   {s.title}
@@ -274,15 +269,62 @@ const mediaBuilder = (
   );
 };
 
+const parseData = (rawData: IGraphData | undefined, label: string) => {
+  if (!rawData) {
+    return [];
+  }
+  const { data } = rawData;
+  const resolution: {date: string, value: number, label: string}[] = [];
+  Object.keys(data.ds).forEach(
+    (key) => {
+      const date = data.ds[key];
+      const value = Number(data.y[key]);
+      resolution.push({
+        date,
+        value,
+        label,
+      });
+    },
+  );
+  return resolution;
+};
+
+const buildStockPriceDV = (
+  history: IGraphData | undefined,
+  future: IGraphData | undefined,
+  filter: string
+) => {
+  const hData = parseData(history, 'history');
+  const fData = parseData(future, 'future');
+  if (fData.length === 0) {
+    return hData;
+  }
+  const raw = [...hData, ...fData];
+  let filtered;
+  switch (filter) {
+    case '6months':
+      filtered = raw.filter((r) => moment(r.date).isSameOrBefore(moment().subtract(6, 'month')));
+      break;
+    case 'max':
+    default:
+      filtered = raw;
+  }
+  return filtered;
+};
+
 const pageLoader = (
   symbol: string,
   meta: ISymbolSuggestion | undefined,
   sentiments: ISentimentData | undefined,
+  history: IGraphData | undefined,
+  future: IGraphData | undefined,
+  filter: string,
   handleDate: (dates: RangePickerValue, dateStrings: [string, string]) => void,
 ) => {
   if (!meta) {
     return <Spin size="large" />;
   }
+  const data = buildStockPriceDV(history, future, filter);
   return (
     <div>
       <div className="container">
@@ -306,48 +348,49 @@ const pageLoader = (
       <div className="container">
         <Row gutter={16}>
           <Col xs={24} sm={24} md={14} lg={14} xl={14} className="mb-3">
-            <Card
-              hoverable
-              title="Market Trends"
-              className="mb-3"
-              tabList={tabList}
-            >
-              <Chart
-                padding={[40, 20, 40, 20]}
-                height={400}
-                data={data}
-                scale={cols}
-                forceFit
+            {history ? (
+              <Card
+                hoverable
+                title="Market Trends"
+                className="mb-3"
+                tabList={tabList}
+                onTabChange={(key) => {}}
               >
-                <Axis name="year" />
-                <Axis name="value" />
-                <Tooltip
-                  crosshairs={false}
-                  useHtml
-                  enterable
-                  triggerOn="click"
-                />
-                <Geom type="area" position="year*value" size={2} shape="smooth" />
-                <Guide>
-                  <Line
-                    top
-                    start={{
-                      year: '1999',
-                      value: 13,
-                    }}
-                    end={{
-                      year: '2003',
-                      value: 15,
-                    }}
-                    lineStyle={{
-                      stroke: '#E91E63',
-                      lineDash: [0, 2, 2],
-                      lineWidth: 1,
-                    }}
+                <Chart
+                  padding={[40, 30, 80, 30]}
+                  height={400}
+                  data={data}
+                  scale={cols}
+                  forceFit
+                >
+                  <Legend />
+                  <Axis name="date" />
+                  <Axis name="value" />
+                  <Tooltip
+                    crosshairs={false}
+                    useHtml
+                    enterable
                   />
-                </Guide>
-              </Chart>
-            </Card>
+                  <Geom
+                    type="area"
+                    position="date*value"
+                    size={2}
+                    shape="smooth"
+                    color={['label', ['#009688', '#F48FB1']]}
+                  />
+                </Chart>
+              </Card>
+            ) : (
+              <Card
+                loading
+                title="Market Trends"
+              >
+                <Meta
+                  title="Card title"
+                  description="This is the description"
+                />
+              </Card>
+            )}
           </Col>
           <Col xs={24} sm={24} md={10} lg={10} xl={10}>
             {mediaBuilder(sentiments, handleDate)}
@@ -362,11 +405,19 @@ const isLoading = (meta: ISymbolSuggestion | undefined) => (
   !meta ? 'full-screen-center' : ''
 );
 
-const SymbolScreen = ({ connected, sentiment }: Props) => {
+const SymbolScreen = ({
+  connected,
+  sentiment,
+  history,
+  future,
+  onDateUpdated,
+}: Props) => {
   const s = useParams<IParam>().symbol;
+  const h = useHistory();
   const [symbol, setSymbol] = useState<string>(s);
   const [meta, setMeta] = useState<ISymbolSuggestion>();
   const [displaySentiments, setDisplaySentiments] = useState<boolean>();
+  const [filter, setFilter] = useState<string>('max');
   const [dateRange, setDate] = useState<IDateRange>({
     start: moment().subtract(1, 'month').format(dateFormat),
     end: moment().format(dateFormat),
@@ -374,6 +425,7 @@ const SymbolScreen = ({ connected, sentiment }: Props) => {
 
   const handleDatePicker = (_: RangePickerValue, dateStrings: [string, string]) => {
     setDisplaySentiments(false);
+    onDateUpdated();
     setDate({
       start: dateStrings[0],
       end: dateStrings[1],
@@ -383,15 +435,34 @@ const SymbolScreen = ({ connected, sentiment }: Props) => {
   useEffect(() => {
     if (connected) {
       const message = new Paho.Message(JSON.stringify({
-        start: moment().subtract(1, 'month').format(dateFormat),
-        end: moment().format(dateFormat),
+        start: dateRange.start,
+        end: dateRange.end,
         ticker: symbol,
       }));
       message.destinationName = 'getSentiment';
       messaging.send(message);
       setDisplaySentiments(true);
     }
-  }, [meta, connected, dateRange]);
+  }, [dateRange]);
+
+  useEffect(() => {
+    if (connected) {
+      const sMessage = new Paho.Message(JSON.stringify({
+        start: moment().subtract(1, 'month').format(dateFormat),
+        end: moment().format(dateFormat),
+        ticker: symbol,
+      }));
+      const hMessage = new Paho.Message(symbol);
+      const fMessage = new Paho.Message(symbol);
+      sMessage.destinationName = 'getSentiment';
+      hMessage.destinationName = 'getHistory';
+      fMessage.destinationName = 'getFuture';
+      messaging.send(sMessage);
+      messaging.send(hMessage);
+      messaging.send(fMessage);
+      setDisplaySentiments(true);
+    }
+  }, [meta]);
 
   useEffect(() => {
     async function doAsync() {
@@ -399,6 +470,12 @@ const SymbolScreen = ({ connected, sentiment }: Props) => {
       const symbolRes = res.find((r) => r.symbol === symbol);
       if (symbolRes) {
         setMeta(symbolRes);
+      } else {
+        h.push('/');
+        notification.open({
+          message: `${symbol} is Not a Valid Symbol`,
+          description: 'Taking You Back to Home Page Now',
+        });
       }
     }
     doAsync();
@@ -410,6 +487,9 @@ const SymbolScreen = ({ connected, sentiment }: Props) => {
         symbol,
         meta,
         displaySentiments ? sentiment : undefined,
+        history,
+        future,
+        filter,
         handleDatePicker,
       )}
     </div>

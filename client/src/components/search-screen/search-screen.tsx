@@ -8,6 +8,23 @@ import {
   Button,
   Icon,
 } from 'antd';
+
+import {
+  G2,
+  Chart,
+  Geom,
+  Axis,
+  Tooltip,
+  Coord,
+  Label,
+  Legend,
+  View,
+  Guide,
+  Shape,
+  Facet,
+  Util,
+} from 'bizcharts';
+
 import { SelectValue } from 'antd/lib/select';
 import axios, { AxiosResponse } from 'axios';
 import { useHistory } from 'react-router-dom';
@@ -50,7 +67,7 @@ const fetchSuggestionData = async (query: string) => {
 };
 
 const ChatScreen: React.FC = () => {
-  const [query, setQuery] = useState<string | null>(null);
+  const [query, setQuery] = useState<string>();
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [symbol, setSymbol] = useState<string>();
   const history = useHistory();
@@ -75,6 +92,11 @@ const ChatScreen: React.FC = () => {
     doAsync();
   }, [query]);
 
+  const onClickSearch = () => {
+    setSymbol(query);
+    history.push(`/symbol/${query}`);
+  };
+
   return (
     <div className="search-screen">
       <div className="search-screen-elements">
@@ -98,6 +120,7 @@ const ChatScreen: React.FC = () => {
                   style={{ marginRight: -12 }}
                   size="large"
                   type="primary"
+                  onClick={onClickSearch}
                 >
                   <Icon type="search" />
                 </Button>

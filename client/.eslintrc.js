@@ -28,6 +28,7 @@ module.exports = {
         "import/no-unresolved": "off",
         "linebreak-style": "off",
         "import/no-extraneous-dependencies": "off",
-        "no-unused-vars": "off"
+        "no-unused-vars": "off",
+        "class-methods-use-this": "off"
     }
 };

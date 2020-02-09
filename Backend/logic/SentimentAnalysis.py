@@ -6,7 +6,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from heapq import nlargest
 
-def getSentiment(startDate, endDate):
+def getSentiment(startDate, endDate, companySymbol):
     maxDate = endDate.split('-')
     maxDate = datetime(int(maxDate[0]),int(maxDate[1]), int(maxDate[2]))
     minDate = startDate.split('-')
@@ -16,7 +16,7 @@ def getSentiment(startDate, endDate):
     minComp = {'compound':2}
 
     apiKey = 'OmIwMThkMTA2NDQ2MzY5ZGJiOGRiMzM4NDE1OTYwMzZj'
-    companySymbol = 'AAPL'
+
 
     r = requests.get(f'https://api-v2.intrinio.com/companies/{companySymbol}/news?api_key={apiKey}')
 
@@ -79,7 +79,3 @@ def getSentiment(startDate, endDate):
                         break
                 break
     return newJson
-    
-lst = [{'a':5}, {'a':7}, {'a':2}, {'a':4}]
-ThreeHighest = nlargest(3, lst, key = lambda x: x['a'])
-print(ThreeHighest) 

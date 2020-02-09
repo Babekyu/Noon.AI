@@ -35,17 +35,18 @@ def on_message(client, userdata, msg):
     print(msg.topic)
     if (msg.topic == 'getFuture'):
         resp = operations.getFuture(msg.payload.decode())
-        client.publish('sendFuture', payload=str(resp))
+        client.publish('sendFuture', payload=json.dumps(resp))
     # accepts string ticker
     if (msg.topic == 'getHistory'):
         resp = operations.getHistorical(msg.payload.decode())
-        client.publish('sendHistory', payload=str(resp))
+        client.publish('sendHistory', payload=json.dumps(resp))
     # accepts object with 'start', 'end' and 'ticker'
     if (msg.topic == 'getSentiment'):
         params = (json.loads(msg.payload.decode()))
+        print(params)
         resp = SentimentAnalysis.getSentiment(params['start'], params['end'], params['ticker'])
         print(resp['maxSentiment'])
-        client.publish('sendSentiment', payload=str(resp))
+        client.publish('sendSentiment', payload=json.dumps(resp))
 
 
 # If using websockets (protocol is ws or wss), must set the transport for the client as below

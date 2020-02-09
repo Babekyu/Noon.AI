@@ -9,62 +9,14 @@ import {
   Icon,
 } from 'antd';
 
-import {
-  G2,
-  Chart,
-  Geom,
-  Axis,
-  Tooltip,
-  Coord,
-  Label,
-  Legend,
-  View,
-  Guide,
-  Shape,
-  Facet,
-  Util,
-} from 'bizcharts';
-
 import { SelectValue } from 'antd/lib/select';
-import axios, { AxiosResponse } from 'axios';
 import { useHistory } from 'react-router-dom';
-
-import urls from '../../helpers/urls';
+import { fetchSuggestionData } from '../../services/search-symbol';
 
 import './search-screen.css';
 
 
 const { Text } = Typography;
-
-interface AlphaVantageSuggestionResp {
-  bestMatches: ISymbolSuggestionData[];
-}
-
-interface ISymbolSuggestionData {
-  '1. symbol': string;
-  '2. name': string;
-  '3. type': string;
-}
-
-interface ISymbolSuggestion {
-  symbol: string;
-  name: string;
-  type: string;
-}
-
-const fetchSuggestionData = async (query: string) => {
-  const resp:
-    AxiosResponse<AlphaVantageSuggestionResp> = await axios
-      .get(urls.stock_symbol_suggestions(query));
-  if (!resp || !resp.data || !resp.data.bestMatches) {
-    return [];
-  }
-  return resp.data.bestMatches.map<ISymbolSuggestion>((v) => ({
-    symbol: v['1. symbol'],
-    name: v['2. name'],
-    type: v['3. type'],
-  }));
-};
 
 const ChatScreen: React.FC = () => {
   const [query, setQuery] = useState<string>();

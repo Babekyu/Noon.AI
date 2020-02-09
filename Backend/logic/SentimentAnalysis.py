@@ -34,7 +34,7 @@ def getSentiment(startDate, endDate):
                 break
             if (pubDate<=maxDate and len(x['summary'].split('.'))<10):
                 nv = sia.polarity_scores(x['summary'])
-                toAdd = {'title': x['title'], 'date': pubDate, 'summary': x['summary'], 'positive': nv['pos'], 'neutral': nv['neu'], 'negative': nv['neg'], 'compound': nv['compound']}
+                toAdd = {'title': x['title'], 'date': str(pubDate)[:10], 'summary': x['summary'], 'positive': nv['pos'], 'neutral': nv['neu'], 'negative': nv['neg'], 'compound': nv['compound']}
                 newJson['res']+=[toAdd]
                 if (toAdd['compound'] > maxComp['compound']):
                     toAdd['url'] = x['url']

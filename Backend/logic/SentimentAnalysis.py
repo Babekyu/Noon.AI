@@ -39,6 +39,7 @@ def getSentiment(startDate, endDate):
                     temp = nlargest(4, temp, key = lambda x: abs(x['compound']))
                 newJson['res'] += temp
                 currDate = pubDate
+                temp = []
             if (pubDate<minDate):
                 flag = False
                 break

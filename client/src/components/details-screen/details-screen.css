@@ -34,3 +34,10 @@
 .ant-calendar-picker {
   width: 100%;
 }
+
+.full-screen-center {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

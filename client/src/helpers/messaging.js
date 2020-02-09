@@ -34,9 +34,14 @@ class Messaging extends Paho.Client {
 
   // called when a message arrives
   handleMessage(message) {
-    console.log(message.payloadString);
+    console.log(message);
+    // console.log(message.payloadString);
     // console.log('Received message', message.payloadString);
     this.callbacks.forEach((callback) => callback(message));
+  }
+
+  send(message) {
+    super.send(message);
   }
 
   subscribe(topic) {

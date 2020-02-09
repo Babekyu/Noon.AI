@@ -122,6 +122,10 @@ const overallSentiment = [
 
 const tabList = [
   {
+    key: 'max',
+    tab: 'Max',
+  },
+  {
     key: '1day',
     tab: '1 Day',
   },
@@ -144,10 +148,6 @@ const tabList = [
   {
     key: '5years',
     tab: '5 Years',
-  },
-  {
-    key: 'max',
-    tab: 'Max',
   },
 ];
 

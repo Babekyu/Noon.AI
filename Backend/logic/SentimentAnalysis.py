@@ -68,6 +68,4 @@ def getSentiment(startDate, endDate):
                         break
                 break
     return newJson
-
-ret = getSentiment('2019-09-20','2019-11-04')
     

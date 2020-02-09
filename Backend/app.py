@@ -1,6 +1,7 @@
 import certifi
+import json
 import paho.mqtt.client as mqtt
-from logic import operations
+from logic import operations, SentimentAnalysis
 
 
 # Callback on connection
@@ -10,32 +11,41 @@ def on_connect(client, userdata, flags, rc):
     # See: https://docs.solace.com/Open-APIs-Protocols/MQTT/MQTT-Topics.htm
     client.subscribe('getFuture')
     client.subscribe('getHistory')
+    client.subscribe('getSentiment')
+
 
     # Examples of publishing messages to different types of subscriptions
-    client.publish('foo', payload='noob')
-    client.publish('foo/foo', payload='will not be seen, no one is subscribed to this topic')
-
-    client.publish('hello/world/canada/ottawa', payload='# matches any level')
-
-    client.publish('languages/python2', payload='eol')
-    client.publish('languages/python3', payload='valid')
-    client.publish('languages/other/level', payload='will not be seen, + only matches one level')
-
-    client.publish('game/player1/move', payload='Moving to (1, 2)')
-    client.publish('game/player2/move', payload='Moving to (3, 4)')
+    # client.publish('foo', payload='noob')
+    # client.publish('foo/foo', payload='will not be seen, no one is subscribed to this topic')
+    #
+    # client.publish('hello/world/canada/ottawa', payload='# matches any level')
+    #
+    # client.publish('languages/python2', payload='eol')
+    # client.publish('languages/python3', payload='valid')
+    # client.publish('languages/other/level', payload='will not be seen, + only matches one level')
+    #
+    # client.publish('game/player1/move', payload='Moving to (1, 2)')
+    # client.publish('game/player2/move', payload='Moving to (3, 4)')
 
 
 # Callback when message is received
 def on_message(client, userdata, msg):
     # print(f'Message received on topic: {msg.topic}. Message: {msg.payload}')
-    #accepts string ticker
+    # accepts string ticker
+    print(msg.topic)
     if (msg.topic == 'getFuture'):
-        resp = operations.getFuture(msg.payload)
+        resp = operations.getFuture(msg.payload.decode())
         client.publish('sendFuture', payload=str(resp))
     # accepts string ticker
     if (msg.topic == 'getHistory'):
-        resp = operations.getHistorical(msg.payload)
+        resp = operations.getHistorical(msg.payload.decode())
         client.publish('sendHistory', payload=str(resp))
+    # accepts object with 'start', 'end' and 'ticker'
+    if (msg.topic == 'getSentiment'):
+        params = (json.loads(msg.payload.decode()))
+        resp = SentimentAnalysis.getSentiment(params['start'], params['end'], params['ticker'])
+        print(resp['maxSentiment'])
+        client.publish('sendSentiment', payload=str(resp))
 
 
 # If using websockets (protocol is ws or wss), must set the transport for the client as below

@@ -1,12 +1,38 @@
 
 import React, { useState, useEffect } from 'react';
 
-import { AutoComplete, Typography } from 'antd';
+import {
+  AutoComplete,
+  Typography,
+  Input,
+  Button,
+  Icon,
+} from 'antd';
+
+import {
+  G2,
+  Chart,
+  Geom,
+  Axis,
+  Tooltip,
+  Coord,
+  Label,
+  Legend,
+  View,
+  Guide,
+  Shape,
+  Facet,
+  Util,
+} from 'bizcharts';
+
+import { SelectValue } from 'antd/lib/select';
 import axios, { AxiosResponse } from 'axios';
+import { useHistory } from 'react-router-dom';
+
 import urls from '../../helpers/urls';
 
 import './search-screen.css';
-import { SelectValue } from 'antd/lib/select';
+
 
 const { Text } = Typography;
 
@@ -30,6 +56,9 @@ const fetchSuggestionData = async (query: string) => {
   const resp:
     AxiosResponse<AlphaVantageSuggestionResp> = await axios
       .get(urls.stock_symbol_suggestions(query));
+  if (!resp || !resp.data || !resp.data.bestMatches) {
+    return [];
+  }
   return resp.data.bestMatches.map<ISymbolSuggestion>((v) => ({
     symbol: v['1. symbol'],
     name: v['2. name'],
@@ -38,16 +67,19 @@ const fetchSuggestionData = async (query: string) => {
 };
 
 const ChatScreen: React.FC = () => {
-  const [query, setQuery] = useState<string | null>(null);
+  const [query, setQuery] = useState<string>();
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [symbol, setSymbol] = useState<string>();
+  const history = useHistory();
 
   const onSearchType = (q: string) => {
     setQuery(q);
   };
 
   const onSelectOption = (value: SelectValue) => {
-    const v = value.toString();
-    console.log(v.split(': '));
+    const symb = value.toString().split(': ')[0];
+    setSymbol(symb);
+    history.push(`/symbol/${symb}`);
   };
 
   useEffect(() => {
@@ -59,6 +91,11 @@ const ChatScreen: React.FC = () => {
     }
     doAsync();
   }, [query]);
+
+  const onClickSearch = () => {
+    setSymbol(query);
+    history.push(`/symbol/${query}`);
+  };
 
   return (
     <div className="search-screen">
@@ -75,7 +112,21 @@ const ChatScreen: React.FC = () => {
             onSearch={onSearchType}
             onSelect={onSelectOption}
             dataSource={suggestions}
-          />
+          >
+            <Input
+              suffix={(
+                <Button
+                  className="search-btn"
+                  style={{ marginRight: -12 }}
+                  size="large"
+                  type="primary"
+                  onClick={onClickSearch}
+                >
+                  <Icon type="search" />
+                </Button>
+              )}
+            />
+          </AutoComplete>
         </div>
       </div>
     </div>

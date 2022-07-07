@@ -24,7 +24,7 @@
     "eslint-plugin-jsx-a11y": "6.2.3",
     "eslint-plugin-react": "7.14.3",
     "eslint-plugin-react-hooks": "1.7.0",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "paho-mqtt": "^1.1.0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
